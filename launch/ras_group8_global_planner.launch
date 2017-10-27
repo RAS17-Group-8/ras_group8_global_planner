@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- Launch RAS Group 8 GlobalPlanner Node -->
+  <node pkg="ras_group8_global_planner" type="ras_group8_global_planner" name="ras_group8_global_planner" output="screen">
+    <rosparam command="load" file="$(find ras_group8_global_planner)/config/default.yaml" />
+  </node>
+
+</launch>

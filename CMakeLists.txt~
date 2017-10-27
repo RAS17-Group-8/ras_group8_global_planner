@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ras_group8_global_planner)
+project(ras_group8_template)
 
 find_package(catkin REQUIRED
   COMPONENTS
@@ -24,8 +24,8 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}
-  src/global_planner_node.cpp
-  src/GlobalPlanner.cpp
+  src/template_node.cpp
+  src/Template.cpp
 )
 
 add_dependencies(${PROJECT_NAME}
@@ -38,8 +38,8 @@ target_link_libraries(${PROJECT_NAME}
 
 if (CATKIN_ENABLE_TESTING)
   catkin_add_gtest(${PROJECT_NAME}_tests
-    test/test_global_planner.cpp
-    src/GlobalPlanner.cpp
+    test/test_template.cpp
+    src/Template.cpp
   )
   
   target_link_libraries(${PROJECT_NAME}_tests

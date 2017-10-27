@@ -3,13 +3,13 @@
 #include <ros/ros.h>
 #include <phidgets/motor_encoder.h>
 
-namespace ras_group8_template {
+namespace ras_group8_global_planner {
 
-class Template
+class GlobalPlanner
 {
 public:
-  Template(ros::NodeHandle& node_handle);
-  virtual ~Template();
+  GlobalPlanner(ros::NodeHandle& node_handle);
+  virtual ~GlobalPlanner();
 
 private:
   bool readParameters();
