@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ras_group8_template)
+project(ras_group8_global_planner)
 
 find_package(catkin REQUIRED
   COMPONENTS
   roscpp
-  phidgets
+  nav_msgs
+  geometry_msgs
+  ras_group8_util
+  
 )
 
 catkin_package(
@@ -13,7 +16,9 @@ catkin_package(
 
   CATKIN_DEPENDS
     roscpp
-    phidgets
+    nav_msgs
+    geometry_msgs
+    ras_group8_util
 
 # DEPENDS
 )
@@ -24,8 +29,8 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}
-  src/template_node.cpp
-  src/Template.cpp
+  src/global_planner_node.cpp
+  src/GlobalPlanner.cpp
 )
 
 add_dependencies(${PROJECT_NAME}
@@ -33,13 +38,14 @@ add_dependencies(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+  ras_group8_util_bmp
   ${catkin_LIBRARIES}
 )
 
 if (CATKIN_ENABLE_TESTING)
   catkin_add_gtest(${PROJECT_NAME}_tests
-    test/test_template.cpp
-    src/Template.cpp
+    test/test_global_planner.cpp
+    src/GlobalPlanner.cpp
   )
   
   target_link_libraries(${PROJECT_NAME}_tests

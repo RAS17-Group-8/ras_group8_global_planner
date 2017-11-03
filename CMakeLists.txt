@@ -4,7 +4,10 @@ project(ras_group8_global_planner)
 find_package(catkin REQUIRED
   COMPONENTS
   roscpp
-  phidgets
+  nav_msgs
+  geometry_msgs
+  ras_group8_util
+  
 )
 
 catkin_package(
@@ -13,7 +16,9 @@ catkin_package(
 
   CATKIN_DEPENDS
     roscpp
-    phidgets
+    nav_msgs
+    geometry_msgs
+    ras_group8_util
 
 # DEPENDS
 )
