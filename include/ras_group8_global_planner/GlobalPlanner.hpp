@@ -11,6 +11,8 @@
 //services
 #include <nav_msgs/GetPlan.h>
 #include <nav_msgs/GetMap.h>
+#include <visualization_msgs/Marker.h>
+//#include <visualization_msgs/MarkerArray.h>
 
 using std::vector;
 
@@ -55,6 +57,7 @@ private:
   int lineToColumn(int element);
   int lineToRow(int element);
   void addOpenNode(int x, int y, AStarNode* lowestcostnode, int lastposition);
+  void pathVisualisation();
 
   /* ROS Objects
    */
@@ -63,6 +66,8 @@ private:
   ros::ServiceClient get_map_client_;
   ros::ServiceServer compute_global_path_server_;
 
+  ros::Publisher marker_pub_;
+
   /* Parameters
    */
   std::string compute_path_service_;
@@ -70,6 +75,8 @@ private:
 
   nav_msgs::GetMap actual_map_;
   nav_msgs::OccupancyGrid cost_map_;
+
+  visualization_msgs::Marker points_;
 
   /* Variables
    */

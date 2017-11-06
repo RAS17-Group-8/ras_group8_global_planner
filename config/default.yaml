@@ -10,7 +10,7 @@ map_costs:
 
 obstacle_avoidance: 
   obstacle_boundary: 50
-  obstacle_distance: 0.1
+  obstacle_distance: 0.05
 
 
 size_robot: 

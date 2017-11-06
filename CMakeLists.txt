@@ -7,7 +7,7 @@ find_package(catkin REQUIRED
   nav_msgs
   geometry_msgs
   ras_group8_util
-  
+  visualization_msgs
 )
 
 catkin_package(
@@ -19,6 +19,7 @@ catkin_package(
     nav_msgs
     geometry_msgs
     ras_group8_util
+    visualization_msgs
 
 # DEPENDS
 )

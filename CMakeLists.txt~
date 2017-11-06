@@ -4,10 +4,10 @@ project(ras_group8_global_planner)
 find_package(catkin REQUIRED
   COMPONENTS
   roscpp
-  nav_msgs
+ # nav_msgs
   geometry_msgs
   ras_group8_util
-  
+  #visualization_msgs
 )
 
 catkin_package(
@@ -16,9 +16,10 @@ catkin_package(
 
   CATKIN_DEPENDS
     roscpp
-    nav_msgs
+   # nav_msgs
     geometry_msgs
     ras_group8_util
+   # visualization_msgs
 
 # DEPENDS
 )
@@ -38,7 +39,6 @@ add_dependencies(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-  ras_group8_util_bmp
   ${catkin_LIBRARIES}
 )
 

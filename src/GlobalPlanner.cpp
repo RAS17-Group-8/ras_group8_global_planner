@@ -52,6 +52,9 @@ bool GlobalPlanner::readParameters()
 
 bool GlobalPlanner::readMap()
 {
+    /*
+     * reads the map from the Map server and creates an cost map
+     */
     get_map_client_.call(actual_map_);
 
     width_=actual_map_.response.map.info.width;
@@ -61,14 +64,11 @@ bool GlobalPlanner::readMap()
     cost_map_.info.width = width_;
     cost_map_.info.height = height_;
     cost_map_.info.resolution = resolution_;
-
-    /* Allocate the map */
     cost_map_.data.resize(width_ * height_);
 
     // Create the costmap
     for (int i=0; i<(width_*height_); i++)
     {
-        //ROS_INFO("Cost %i",actual_map_.response.map.data[i]);
         if (actual_map_.response.map.data[i]>obstacle_boundary_)
         {
            GlobalPlanner::mapSmoothing(i);
@@ -77,8 +77,25 @@ bool GlobalPlanner::readMap()
         {
             cost_map_.data[i]=cost_free_cell_;
         }
+       // ROS_INFO("Map %i  Cost %i",actual_map_.response.map.data[i],cost_map_.data[i]);
     }
     ROS_INFO("Cost Map creation succesfull");
+
+
+//    for (int j=8; j<(20); j++)
+//    {
+//    for (int i=0; i<(width_); i++)
+//    {
+//       ROS_INFO("Cost:%i, Transformation %i, Costmap:%i",actual_map_.response.map.data[width_*j+i],actual_map_.response.map.data[mapToLine(i, j)],cost_map_.data[width_*j+i]);
+//       //mapToLine(int spalte, int reihe)
+
+//    }
+//    ROS_INFO("Next:ine %i",j);
+//    for (int i=0; i<1000000000; i++)
+//    {
+
+//    }
+//    }
 
     //////////////////Show Cost Map//////////////////////
     int res;
@@ -100,7 +117,6 @@ bool GlobalPlanner::readMap()
       ROS_ERROR("Failed to open target file");
     }
     res = ras_group8_util::BMP::write(cost_map_, f2);
-    ROS_INFO("%i ras",res);
     ROS_INFO("Test Pictures are created" );
 
     ///////////////////////////////////////
@@ -126,7 +142,7 @@ void GlobalPlanner::mapSmoothing(int cell)
     {
         for (int x=actual_column-cell_kernel; x<=actual_column+cell_kernel; x++)
         {
-            int position=mapToLine(y,x);
+            int position=mapToLine(x,y);
 
             if (y < 0 || y >= height_ || x < 0 || x >= width_)
             {
@@ -152,13 +168,17 @@ void GlobalPlanner::mapSmoothing(int cell)
 bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
                                 nav_msgs::GetPlan::Response &res)
 {
+    /*
+     * Function loads the costmap and calculates the path by the help of the AStar algorithm
+     */
+
     ROS_INFO("Start to compute path");
 
     //////////////////////convert it into the map %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    start_x=5;//(int)req.start.pose.position.x;
-    start_y=5;//(int)req.start.pose.position.y;
-    goal_x=100;//(int)req.goal.pose.position.x;
-    goal_y=50;//(int)req.goal.pose.position.y;
+    start_x=15;//(int)req.start.pose.position.x;
+    start_y=15;//(int)req.start.pose.position.y;
+    goal_x=220;//(int)req.goal.pose.position.x;
+    goal_y=15;//(int)req.goal.pose.position.y;
 
     //////////////////////////////////////////////////////////////////////////
     int position=mapToLine(start_x,start_y);
@@ -167,10 +187,14 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     readMap();
 
     if (start_y < 0 || start_y >= height_ || start_x < 0 || start_x >= width_ ||
-         goal_y < 0 || goal_y >= height_ || goal_x < 0 || goal_x >= width_   )
+         goal_y < 0 || goal_y >= height_ || goal_x < 0 || goal_x >= width_ )
     {
         ROS_ERROR("Start or goal lays outside of the map");
         return false;
+    }
+    if (cost_map_.data[mapToLine(start_x, start_y)]==cost_solid_obstacle_|| cost_map_.data[mapToLine(goal_x, goal_y)]==cost_solid_obstacle_)
+    {
+        ROS_INFO("Start or goal lays on an obstacle");
     }
 
     actual_node_.node_x=start_x;
@@ -178,12 +202,10 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     actual_node_.come_from_x=-1;
     actual_node_.come_from_y=-1;
     actual_node_.come_from_position=-1;
-
     actual_node_.actual_cost=cost_map_.data[position];
-
     actual_node_.estimate_goal_cost=cost_free_cell_*(abs(actual_node_.node_x-goal_x)+abs(actual_node_.node_y-goal_y));
     actual_node_.total_cost=actual_node_.estimate_goal_cost+actual_node_.actual_cost;
-    AStarList.push_back(actual_node_); //add a new element to the list
+    AStarList.push_back(actual_node_);
 
     lowest_cost_element=0;
 
@@ -194,21 +216,31 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
        addOpenNode(AStarList[lowest_cost_element].node_x, AStarList[lowest_cost_element].node_y-1, &AStarList[lowest_cost_element], arrayposition);
        addOpenNode(AStarList[lowest_cost_element].node_x, AStarList[lowest_cost_element].node_y+1, &AStarList[lowest_cost_element], arrayposition);
 
+       //ROS_INFO("Info x %i y%i %i", AStarList[lowest_cost_element].node_x, AStarList[lowest_cost_element].node_y,AStarList.size());
+
        AStarList[lowest_cost_element].closed=true; //Add the node to the close loop list
 
        //Find the node with the lowest total cost in the open node list
        int lowestcost=1000000;
+       bool no_path=true;
        arrayposition=0;
        for (int i=0; i<AStarList.size();i++)
        {
-           if (!AStarList[i].closed && AStarList[i].actual_cost<lowestcost)
+           if (!AStarList[i].closed && AStarList[i].total_cost<lowestcost)
            {
-               lowestcost=AStarList[i].actual_cost;
+               lowestcost=AStarList[i].total_cost;
                arrayposition=i;
+               no_path=false;
            }
        }
        lowest_cost_element=arrayposition;
+       if (no_path)
+       {
+           ROS_ERROR("There exist no path");
+           return false;
+       }
     }
+
    ROS_INFO("A Star Algorithm was succesfull");
    ROS_INFO("Path cost %i",AStarList[lowest_cost_element].actual_cost);
 
@@ -230,16 +262,21 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
    for (int i=0; i<point_number; i++)
    {
       //////////Change this to the real postion////////////////////////////////
-      res.plan.poses[i].pose.position.x=(double)PathPointList[point_number-1-i].x;
-      res.plan.poses[i].pose.position.y=(double)PathPointList[point_number-1-i].y;
+      res.plan.poses[i].pose.position.x=((double)PathPointList[point_number-1-i].x)*resolution_;
+      res.plan.poses[i].pose.position.y=((double)PathPointList[point_number-1-i].y)*resolution_;
 
       ///////////////////////////////////////////////////
-       ROS_INFO("Plan x:%f  y;%f ",res.plan.poses[i].pose.position.x,res.plan.poses[i].pose.position.y);
+      //ROS_INFO("Plan x:%f  y;%f ",res.plan.poses[i].pose.position.x,res.plan.poses[i].pose.position.y);
 
+      geometry_msgs::Point p;
+      p.x = res.plan.poses[i].pose.position.x;
+      p.y = res.plan.poses[i].pose.position.y;
+      p.z = 0;
+      points_.points.push_back(p);
    }
 
-
    ROS_INFO("Path creation was succesfull");
+   pathVisualisation();
    return true;
 }
 
@@ -259,6 +296,9 @@ void GlobalPlanner::addOpenNode(int x, int y, AStarNode* lowestcostnode, int las
         actual_node_.actual_cost=lowestcostnode->actual_cost+cost_map_.data[position];
         actual_node_.estimate_goal_cost=cost_free_cell_*(abs(x-goal_x)+abs(y-goal_y));
         actual_node_.total_cost=actual_node_.actual_cost+actual_node_.estimate_goal_cost;
+        actual_node_.closed=false;
+
+//        ROS_INFO("x:%i y:%i ,Actual Cost %i Total costs %i",x, y ,actual_node_.actual_cost,actual_node_.total_cost);
 
         bool element_exist=false;
 
@@ -282,13 +322,33 @@ void GlobalPlanner::addOpenNode(int x, int y, AStarNode* lowestcostnode, int las
     }
 }
 
+void GlobalPlanner::pathVisualisation()
+{
+    marker_pub_ = node_handle_.advertise<visualization_msgs::Marker>("visualisation_marker", 1,true);
+    points_.header.frame_id = "/map";
+    points_.header.stamp = ros::Time();
+    points_.ns="map";
+    points_.action=visualization_msgs::Marker::ADD;
+    points_.pose.orientation.w =1.0;
+    points_.id=0;
+    points_.type = visualization_msgs::Marker::POINTS;
+    points_.scale.x = resolution_;
+    points_.scale.y = resolution_;
+    points_.color.b = 1.0;
+    points_.color.a = 1.0;
+    marker_pub_.publish(points_);
+
+    ROS_INFO("Vizualisation was succesfull");
+
+}
+
 //The map data is stored in row-major order, starting at (0,0). Example:
 //  0:  M[0][0]
 //  1:  M[0][1]
 //  2:  M[1][0]
 //  ...
 
-int GlobalPlanner::mapToLine(int row, int col)
+int GlobalPlanner::mapToLine(int col, int row)
 {
   // Check that row and col are in the map
   if (col < 0 || col >= width_ || row < 0 || row >= height_)

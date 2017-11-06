@@ -7,16 +7,16 @@
   <license>BSD</license>
 
   <url type="website">https://github.com/RAS17-Group-8/ras_group8_global_planner</url>
-
   <maintainer email="svenjahi@kth.se">Svenja Hillebrand</maintainer>
-
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roscpp</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
+  <build_depend>ras_group8_util</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>nav_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
+  <run_depend>ras_group8_util</run_depend>
 </package>

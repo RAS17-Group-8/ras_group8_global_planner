@@ -9,8 +9,8 @@ map_costs:
   free_cells: 1
 
 obstacle_avoidance: 
-  obstacle_boundary:50
-  obstacle_distance:0.1
+  obstacle_boundary: 50
+  obstacle_distance: 0.1
 
 
 size_robot: 
