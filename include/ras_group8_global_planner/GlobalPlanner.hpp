@@ -53,11 +53,12 @@ private:
   bool readMap();
   bool computePath(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res);
   void mapSmoothing(int cell);
-  int mapToLine(int row, int col);
-  int lineToColumn(int element);
-  int lineToRow(int element);
+  int  mapToLine(int row, int col);
+  int  lineToColumn(int element);
+  int  lineToRow(int element);
   void addOpenNode(int x, int y, AStarNode* lowestcostnode, int lastposition);
   void pathVisualisation();
+  bool pathSmoothing();
 
   /* ROS Objects
    */
@@ -76,7 +77,8 @@ private:
   nav_msgs::GetMap actual_map_;
   nav_msgs::OccupancyGrid cost_map_;
 
-  visualization_msgs::Marker points_;
+  visualization_msgs::Marker points_path_;
+  visualization_msgs::Marker points_spath_;
 
   /* Variables
    */
@@ -107,6 +109,8 @@ private:
 
   vector<PositionXY> PathPointList;
   PositionXY actual_position_;
+
+  vector<PositionXY> SmoothPathList;
 };
 
 } /* namespace */

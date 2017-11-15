@@ -16,8 +16,8 @@ GlobalPlanner::GlobalPlanner(ros::NodeHandle& node_handle)
   }
   
   get_map_client_=node_handle_.serviceClient<nav_msgs::GetMap>(get_map_service_);
-  compute_global_path_server_=node_handle.advertiseService(compute_path_service_,&GlobalPlanner::computePath,this);
-
+  compute_global_path_server_=node_handle_.advertiseService(compute_path_service_,&GlobalPlanner::computePath,this);
+  marker_pub_ = node_handle_.advertise<visualization_msgs::Marker>("visualisation_marker", 1,true);
 
   ROS_INFO("Successfully launched node.");
 }
@@ -81,43 +81,27 @@ bool GlobalPlanner::readMap()
     }
     ROS_INFO("Cost Map creation succesfull");
 
-
-//    for (int j=8; j<(20); j++)
-//    {
-//    for (int i=0; i<(width_); i++)
-//    {
-//       ROS_INFO("Cost:%i, Transformation %i, Costmap:%i",actual_map_.response.map.data[width_*j+i],actual_map_.response.map.data[mapToLine(i, j)],cost_map_.data[width_*j+i]);
-//       //mapToLine(int spalte, int reihe)
-
-//    }
-//    ROS_INFO("Next:ine %i",j);
-//    for (int i=0; i<1000000000; i++)
-//    {
-
-//    }
-//    }
-
     //////////////////Show Cost Map//////////////////////
-    int res;
-    FILE* f1 = fopen("/home/ras/actual_map.bmp", "wb");
+//    int res;
+//    FILE* f1 = fopen("/home/ras/actual_map.bmp", "wb");
 
-    if (f1 == NULL) {
-      ROS_ERROR("Failed to open target file");
-    }
+//    if (f1 == NULL) {
+//      ROS_ERROR("Failed to open target file");
+//    }
 
-    if (res = ras_group8_util::BMP::write(actual_map_.response.map, f1)) {
-      ROS_ERROR("Failed to write to file (%i)", res);
-    }
+//    if (res = ras_group8_util::BMP::write(actual_map_.response.map, f1)) {
+//      ROS_ERROR("Failed to write to file (%i)", res);
+//    }
 
-    fclose(f1);
+//    fclose(f1);
 
-    FILE* f2 = fopen("/home/ras/cost_map.bmp", "wb");
+//    FILE* f2 = fopen("/home/ras/cost_map.bmp", "wb");
 
-    if (f2 == NULL) {
-      ROS_ERROR("Failed to open target file");
-    }
-    res = ras_group8_util::BMP::write(cost_map_, f2);
-    ROS_INFO("Test Pictures are created" );
+//    if (f2 == NULL) {
+//      ROS_ERROR("Failed to open target file");
+//    }
+//    res = ras_group8_util::BMP::write(cost_map_, f2);
+//    ROS_INFO("Test Pictures are created" );
 
     ///////////////////////////////////////
 }
@@ -171,20 +155,23 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     /*
      * Function loads the costmap and calculates the path by the help of the AStar algorithm
      */
+    AStarList.clear();
+    PathPointList.clear();
+    SmoothPathList.clear();
 
     ROS_INFO("Start to compute path");
 
-    //////////////////////convert it into the map %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    start_x=15;//(int)req.start.pose.position.x;
-    start_y=15;//(int)req.start.pose.position.y;
-    goal_x=220;//(int)req.goal.pose.position.x;
-    goal_y=15;//(int)req.goal.pose.position.y;
+    readMap();
 
-    //////////////////////////////////////////////////////////////////////////
+    start_x=floor(req.start.pose.position.x/resolution_);
+    start_y=floor(req.start.pose.position.y/resolution_);
+    goal_x=floor(req.goal.pose.position.x/resolution_);
+    goal_y=floor(req.goal.pose.position.y/resolution_);
+
     int position=mapToLine(start_x,start_y);
     int arrayposition=0;
 
-    readMap();
+
 
     if (start_y < 0 || start_y >= height_ || start_x < 0 || start_x >= width_ ||
          goal_y < 0 || goal_y >= height_ || goal_x < 0 || goal_x >= width_ )
@@ -243,40 +230,55 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
 
    ROS_INFO("A Star Algorithm was succesfull");
    ROS_INFO("Path cost %i",AStarList[lowest_cost_element].actual_cost);
+   res.plan.header.seq=AStarList[lowest_cost_element].actual_cost;
 
    //create point chain
-   int point_number=0;
+
    while (AStarList[lowest_cost_element].come_from_position!=-1)
    {
-       point_number++;
-
        actual_position_.x=AStarList[lowest_cost_element].node_x;
        actual_position_.y=AStarList[lowest_cost_element].node_y;
        PathPointList.push_back(actual_position_);
 
        lowest_cost_element=AStarList[lowest_cost_element].come_from_position;
+
+       //////Only for Viszualisation///////////////////
+       geometry_msgs::Point p;
+       p.x = actual_position_.x*resolution_;
+       p.y = actual_position_.y*resolution_;
+       p.z = 0;
+       points_path_.points.push_back(p);
+       ///////////////////////////////////////////////////
    }
+
+   if(!pathSmoothing())
+   {
+       ROS_ERROR("Fail to smooth path");
+   }
+
+   int point_number=SmoothPathList.size();
 
    res.plan.poses.resize(point_number);
 
    for (int i=0; i<point_number; i++)
    {
-      //////////Change this to the real postion////////////////////////////////
-      res.plan.poses[i].pose.position.x=((double)PathPointList[point_number-1-i].x)*resolution_;
-      res.plan.poses[i].pose.position.y=((double)PathPointList[point_number-1-i].y)*resolution_;
+      res.plan.poses[i].pose.position.x=((double)SmoothPathList[point_number-1-i].x)*resolution_;
+      res.plan.poses[i].pose.position.y=((double)SmoothPathList[point_number-1-i].y)*resolution_;
 
-      ///////////////////////////////////////////////////
-      //ROS_INFO("Plan x:%f  y;%f ",res.plan.poses[i].pose.position.x,res.plan.poses[i].pose.position.y);
+      //ROS_INFO("Plan x:%f  y;%f ",res.plan.poses[i].pose.position.x/resolution_,res.plan.poses[i].pose.position.y/resolution_);
 
+      //////Only for Viszualisation///////////////////
       geometry_msgs::Point p;
       p.x = res.plan.poses[i].pose.position.x;
       p.y = res.plan.poses[i].pose.position.y;
-      p.z = 0;
-      points_.points.push_back(p);
+      p.z = 0.01;
+      points_spath_.points.push_back(p);
+      ///////////////////////////////////////////////////
    }
 
-   ROS_INFO("Path creation was succesfull");
+   ROS_INFO("Path creation was succesfull, pathpoints: %i ", point_number);
    pathVisualisation();
+
    return true;
 }
 
@@ -322,21 +324,143 @@ void GlobalPlanner::addOpenNode(int x, int y, AStarNode* lowestcostnode, int las
     }
 }
 
+
+bool GlobalPlanner::pathSmoothing()
+{
+    ROS_INFO("Start Path Smooting");
+    bool obstacle=false;
+    double slope_x;
+    double slope_y;
+    int delta_x=0;
+    int delta_y=0;
+    int cost_element;
+    GlobalPlanner::PositionXY last_spath_element=PathPointList[0];
+
+    SmoothPathList.push_back(last_spath_element);
+
+    for (int i=1; i<PathPointList.size(); i++)
+    {
+        delta_x=abs(PathPointList[i].x-last_spath_element.x);
+        delta_y=abs(PathPointList[i].y-last_spath_element.y);
+        int sign_x=1;
+        int sign_y=1;
+        if(PathPointList[i].x<last_spath_element.x) {sign_x=-1;}
+        if(PathPointList[i].y<last_spath_element.y) {sign_y=-1;}
+
+        if (delta_x==0||delta_y==0){
+            slope_x=0;
+            slope_y=0;
+        }
+        else{
+            slope_x=((double)(delta_y*sign_y)/(delta_x*sign_x));
+            slope_y=((double)(delta_x*sign_x)/(delta_y*sign_y));
+        }
+
+//        ROS_INFO("last El x:%i y:%i act El x:%i y:%i ", last_spath_element.x,last_spath_element.y,PathPointList[i].x,PathPointList[i].y);
+//        ROS_INFO("Deltax %i delta y %i slope %f", delta_x,delta_y,slope_x);
+
+        if (delta_x>=delta_y)
+        {
+            //ROS_INFO("X bigger y");
+            int dif_y;
+            int dif_y_last=0;
+            for(int d_x=0; d_x< delta_x ;d_x++)
+            {
+                dif_y=sign_x*floor(d_x*slope_x);
+                cost_element=mapToLine((sign_x*d_x+last_spath_element.x), (dif_y+last_spath_element.y));
+
+                //ROS_INFO("Check element x:%i y:%i cost:%i",(sign_x*d_x+last_spath_element.x), (dif_y+last_spath_element.y),cost_map_.data[cost_element]);
+
+                if (cost_map_.data[cost_element]>cost_free_cell_)
+                {
+                    obstacle=true;
+                    d_x=delta_x;
+                }
+
+                if (dif_y!=dif_y_last)
+                {
+                    cost_element=mapToLine((sign_x*d_x+last_spath_element.x-1), (dif_y+last_spath_element.y));
+                    if (cost_map_.data[cost_element]>cost_free_cell_)
+                    {
+                        obstacle=true;
+                        d_x=delta_x;
+                    }
+                }
+                dif_y_last=dif_y;
+            }
+        }
+        else
+        {
+            //ROS_INFO("y bigger x");
+            int dif_x;  //with sign
+            int dif_x_last=0;
+            for(int d_y=0; d_y< delta_y ;d_y++)
+            {
+                dif_x=sign_y*floor(d_y*slope_y);
+                cost_element=mapToLine((dif_x+last_spath_element.x), (d_y*sign_y+last_spath_element.y));
+
+                //ROS_INFO("Check element x:%i y:%i cost:%i",(dif_x+last_spath_element.x), (d_y*sign_y+last_spath_element.y),cost_map_.data[cost_element]);
+
+                if (cost_map_.data[cost_element]>cost_free_cell_)
+                {
+                    obstacle=true;
+                    d_y=delta_y;
+                }
+
+                if (dif_x!=dif_x_last)
+                {
+                    cost_element=mapToLine((dif_x+last_spath_element.x), (sign_y*d_y+last_spath_element.y-1));
+                    if (cost_map_.data[cost_element]>cost_free_cell_)
+                    {
+                        obstacle=true;
+                        d_y=delta_y;
+                    }
+                }
+                dif_x_last=dif_x;
+            }
+
+        }
+
+
+        if (obstacle)
+        {
+            last_spath_element=PathPointList[i-1];
+            SmoothPathList.push_back(last_spath_element);
+            obstacle=false;
+        }
+    }
+    return true;
+}
+
 void GlobalPlanner::pathVisualisation()
 {
-    marker_pub_ = node_handle_.advertise<visualization_msgs::Marker>("visualisation_marker", 1,true);
-    points_.header.frame_id = "/map";
-    points_.header.stamp = ros::Time();
-    points_.ns="map";
-    points_.action=visualization_msgs::Marker::ADD;
-    points_.pose.orientation.w =1.0;
-    points_.id=0;
-    points_.type = visualization_msgs::Marker::POINTS;
-    points_.scale.x = resolution_;
-    points_.scale.y = resolution_;
-    points_.color.b = 1.0;
-    points_.color.a = 1.0;
-    marker_pub_.publish(points_);
+
+    points_path_.header.frame_id = "/map";
+    points_path_.header.stamp = ros::Time();
+    points_path_.ns="map";
+    points_path_.action=visualization_msgs::Marker::ADD;
+    points_path_.pose.orientation.w =1.0;
+    points_path_.id=0;
+    points_path_.type = visualization_msgs::Marker::POINTS;
+    points_path_.scale.x = resolution_;
+    points_path_.scale.y = resolution_;
+    points_path_.color.b = 1.0;
+    points_path_.color.a = 1.0;
+    marker_pub_.publish(points_path_);
+
+    points_spath_.header.frame_id = "/map";
+    points_spath_.header.stamp = ros::Time();
+    points_spath_.ns="map";
+    points_spath_.action=visualization_msgs::Marker::ADD;
+    points_spath_.pose.orientation.w =1.0;
+    points_spath_.id=1;
+    points_spath_.type = visualization_msgs::Marker::POINTS;
+    points_spath_.scale.x = resolution_;
+    points_spath_.scale.y = resolution_;
+    points_spath_.color.g = 1.0;
+    points_spath_.color.a = 1.0;
+    marker_pub_.publish(points_spath_);
+
 
     ROS_INFO("Vizualisation was succesfull");
 
