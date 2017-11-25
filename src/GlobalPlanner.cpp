@@ -159,6 +159,7 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     PathPointList.clear();
     SmoothPathList.clear();
 
+
     ROS_INFO("Start to compute path");
 
     readMap();
@@ -167,6 +168,12 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     start_y=floor(req.start.pose.position.y/resolution_);
     goal_x=floor(req.goal.pose.position.x/resolution_);
     goal_y=floor(req.goal.pose.position.y/resolution_);
+
+    if(start_x==goal_x&&start_y==goal_y)
+    {
+        ROS_ERROR("Start and goal are identical");
+        return false;
+    }
 
     int position=mapToLine(start_x,start_y);
     int arrayposition=0;
@@ -243,11 +250,11 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
        lowest_cost_element=AStarList[lowest_cost_element].come_from_position;
 
        //////Only for Viszualisation///////////////////
-       geometry_msgs::Point p;
-       p.x = actual_position_.x*resolution_;
-       p.y = actual_position_.y*resolution_;
-       p.z = 0;
-       points_path_.points.push_back(p);
+//       geometry_msgs::Point p;
+//       p.x = actual_position_.x*resolution_;
+//       p.y = actual_position_.y*resolution_;
+//       p.z = 0;
+//       points_path_.points.push_back(p);
        ///////////////////////////////////////////////////
    }
 
@@ -260,6 +267,9 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
 
    res.plan.poses.resize(point_number);
 
+   res.plan.poses[point_number-1].pose.orientation.w=req.goal.pose.orientation.w;//only for the last element is the orientation important
+   res.plan.poses[point_number-1].pose.orientation.z=req.goal.pose.orientation.z;
+
    for (int i=0; i<point_number; i++)
    {
       res.plan.poses[i].pose.position.x=((double)SmoothPathList[point_number-1-i].x)*resolution_;
@@ -268,16 +278,15 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
       //ROS_INFO("Plan x:%f  y;%f ",res.plan.poses[i].pose.position.x/resolution_,res.plan.poses[i].pose.position.y/resolution_);
 
       //////Only for Viszualisation///////////////////
-      geometry_msgs::Point p;
-      p.x = res.plan.poses[i].pose.position.x;
-      p.y = res.plan.poses[i].pose.position.y;
-      p.z = 0.01;
-      points_spath_.points.push_back(p);
+//      geometry_msgs::Point p;
+//      p.x = res.plan.poses[i].pose.position.x;
+//      p.y = res.plan.poses[i].pose.position.y;
+//      p.z = 0.01;
+//      points_spath_.points.push_back(p);
       ///////////////////////////////////////////////////
    }
-
    ROS_INFO("Path creation was succesfull, pathpoints: %i ", point_number);
-   pathVisualisation();
+  // pathVisualisation();
 
    return true;
 }
@@ -334,6 +343,7 @@ bool GlobalPlanner::pathSmoothing()
     int delta_x=0;
     int delta_y=0;
     int cost_element;
+
     GlobalPlanner::PositionXY last_spath_element=PathPointList[0];
 
     SmoothPathList.push_back(last_spath_element);
