@@ -1,4 +1,4 @@
-compute_path_service: /ras_group8/global_planner
+compute_path_service: /ras_group8_global_planner/get_path
 get_map_service: /ras_group8_map/map 
  
 

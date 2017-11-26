@@ -68,6 +68,7 @@ private:
   ros::ServiceServer compute_global_path_server_;
 
   ros::Publisher marker_pub_;
+  ros::Publisher cost_map_publisher_ ;
 
   /* Parameters
    */

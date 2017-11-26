@@ -18,6 +18,7 @@ GlobalPlanner::GlobalPlanner(ros::NodeHandle& node_handle)
   get_map_client_=node_handle_.serviceClient<nav_msgs::GetMap>(get_map_service_);
   compute_global_path_server_=node_handle_.advertiseService(compute_path_service_,&GlobalPlanner::computePath,this);
   marker_pub_ = node_handle_.advertise<visualization_msgs::Marker>("visualisation_marker", 1,true);
+  cost_map_publisher_ = node_handle_.advertise<nav_msgs::OccupancyGrid>("visualisation_cost_map", 1,true);
 
   ROS_INFO("Successfully launched node.");
 }
@@ -79,6 +80,9 @@ bool GlobalPlanner::readMap()
         }
        // ROS_INFO("Map %i  Cost %i",actual_map_.response.map.data[i],cost_map_.data[i]);
     }
+
+    cost_map_publisher_.publish(cost_map_);
+
     ROS_INFO("Cost Map creation succesfull");
 
     //////////////////Show Cost Map//////////////////////
@@ -257,6 +261,8 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
 //       points_path_.points.push_back(p);
        ///////////////////////////////////////////////////
    }
+
+   res.plan.header.stamp.sec=PathPointList.size();
 
    if(!pathSmoothing())
    {
