@@ -56,7 +56,11 @@ bool GlobalPlanner::readMap()
     /*
      * reads the map from the Map server and creates an cost map
      */
-    get_map_client_.call(actual_map_);
+    if(!get_map_client_.call(actual_map_))
+    {
+        ROS_ERROR("Unable to load Map");
+        //return false;
+    }
 
     width_=actual_map_.response.map.info.width;
     height_=actual_map_.response.map.info.height;
@@ -66,6 +70,7 @@ bool GlobalPlanner::readMap()
     cost_map_.info.height = height_;
     cost_map_.info.resolution = resolution_;
     cost_map_.data.resize(width_ * height_);
+    ROS_INFO("%d, %d, %f",width_,height_,resolution_);
 
     // Create the costmap
     for (int i=0; i<(width_*height_); i++)
@@ -172,6 +177,8 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     start_y=floor(req.start.pose.position.y/resolution_);
     goal_x=floor(req.goal.pose.position.x/resolution_);
     goal_y=floor(req.goal.pose.position.y/resolution_);
+    //ROS_INFO("Start %f, %f",req.start.pose.position.x,req.goal.pose.position.x);
+
 
     if(start_x==goal_x&&start_y==goal_y)
     {
