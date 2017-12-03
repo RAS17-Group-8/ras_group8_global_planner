@@ -185,6 +185,11 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
         ROS_ERROR("Start and goal are identical");
         return false;
     }
+    if(goal_x==0||goal_y==0)
+    {
+        ROS_ERROR("Goal is zero");
+        return false;
+    }
 
     int position=mapToLine(start_x,start_y);
     int arrayposition=0;
@@ -197,9 +202,10 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
         ROS_ERROR("Start or goal lays outside of the map");
         return false;
     }
-    if (cost_map_.data[mapToLine(start_x, start_y)]==cost_solid_obstacle_|| cost_map_.data[mapToLine(goal_x, goal_y)]==cost_solid_obstacle_)
+    if ( cost_map_.data[mapToLine(goal_x, goal_y)]==cost_solid_obstacle_)
     {
         ROS_INFO("Start or goal lays on an obstacle");
+        return false;
     }
 
     actual_node_.node_x=start_x;
