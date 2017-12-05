@@ -177,7 +177,7 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     start_y=floor(req.start.pose.position.y/resolution_);
     goal_x=floor(req.goal.pose.position.x/resolution_);
     goal_y=floor(req.goal.pose.position.y/resolution_);
-    //ROS_INFO("Start %f, %f",req.start.pose.position.x,req.goal.pose.position.x);
+    ROS_INFO("Start %f, %f Goal %f, %f",req.start.pose.position.x,req.start.pose.position.y,req.goal.pose.position.x,req.goal.pose.position.y);
 
 
     if(start_x==goal_x&&start_y==goal_y)
@@ -204,8 +204,8 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
     }
     if ( cost_map_.data[mapToLine(goal_x, goal_y)]==cost_solid_obstacle_)
     {
-        ROS_INFO("Start or goal lays on an obstacle");
-        return false;
+        ROS_INFO(" goal lays on an obstacle");
+        //return false;
     }
 
     actual_node_.node_x=start_x;
@@ -284,15 +284,19 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
 
    int point_number=SmoothPathList.size();
 
-   res.plan.poses.resize(point_number);
+   res.plan.poses.resize(point_number + 1);
 
-   res.plan.poses[point_number-1].pose.orientation.w=req.goal.pose.orientation.w;//only for the last element is the orientation important
-   res.plan.poses[point_number-1].pose.orientation.z=req.goal.pose.orientation.z;
+   res.plan.poses[0].pose.position = req.start.pose.position;
 
-   for (int i=0; i<point_number; i++)
+  res.plan.poses[point_number].pose.orientation.w = req.goal.pose.orientation.w;//only for the last element is the orientation important
+   res.plan.poses[point_number].pose.orientation.z = req.goal.pose.orientation.z;
+
+   for (int i=1; i<=point_number; i++)
    {
-      res.plan.poses[i].pose.position.x=((double)SmoothPathList[point_number-1-i].x)*resolution_;
-      res.plan.poses[i].pose.position.y=((double)SmoothPathList[point_number-1-i].y)*resolution_;
+      res.plan.poses[i].pose.position.x=
+        ((double)SmoothPathList[point_number-i].x)*resolution_;
+      res.plan.poses[i].pose.position.y=
+        ((double)SmoothPathList[point_number-i].y)*resolution_;
 
       //ROS_INFO("Plan x:%f  y;%f ",res.plan.poses[i].pose.position.x/resolution_,res.plan.poses[i].pose.position.y/resolution_);
 

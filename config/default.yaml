@@ -1,18 +1,18 @@
 compute_path_service: /ras_group8_global_planner/get_path
-get_map_service: /map/map 
+get_map_service: /map/map
  
 
-map_costs: 
+map_costs:
   solid_obstacle: 100
   removable_obstacle: 50
-  distance_obstacle: 50 
+  distance_obstacle: 50
   free_cells: 1
 
-obstacle_avoidance: 
+obstacle_avoidance:
   obstacle_boundary: 30
-  obstacle_distance: 0.05
+  obstacle_distance: 0.08
 
 
-size_robot: 
-  radius:  0.1
+size_robot:
+  radius:  0.15
   
