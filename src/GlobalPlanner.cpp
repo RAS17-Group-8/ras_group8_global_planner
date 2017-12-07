@@ -90,7 +90,7 @@ bool GlobalPlanner::readMap()
 
     ROS_INFO("Cost Map creation succesfull");
 
-    //////////////////Show Cost Map//////////////////////
+    //////////////////Show Cost Map in a bmp file only for tests//////////////////////
 //    int res;
 //    FILE* f1 = fopen("/home/ras/actual_map.bmp", "wb");
 
@@ -117,7 +117,9 @@ bool GlobalPlanner::readMap()
 
 void GlobalPlanner::mapSmoothing(int cell)
 {
-   //Adapt obstacels to the size of the robot and creat a gaussian around the obstacle
+    /*
+     *  Adapt obstacels to the size of the robot and creat a gaussian around the obstacle
+     */
 
     int actual_row=lineToRow(cell);
     int actual_column=lineToColumn(cell);
@@ -162,7 +164,9 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
                                 nav_msgs::GetPlan::Response &res)
 {
     /*
-     * Function loads the costmap and calculates the path by the help of the AStar algorithm
+     * Service to create the path: loads the costmap and calculates the path by the help of the AStar algorithm
+     * starts the path smoothing function.
+     * The respons is the path in messageform get plan.
      */
     AStarList.clear();
     PathPointList.clear();
@@ -316,6 +320,10 @@ bool GlobalPlanner::computePath(nav_msgs::GetPlan::Request &req,
 
 void GlobalPlanner::addOpenNode(int x, int y, AStarNode* lowestcostnode, int lastposition)
 {
+    /*
+     * Function is used for the A* Star algorithm.
+     * Adds a new open node (new grid cell) to the list of already checkt gid cells
+     */
     int position;
 
     if (x>=0 && x<width_ && y>=0 && y<height_) //Point is inside the map
@@ -359,6 +367,9 @@ void GlobalPlanner::addOpenNode(int x, int y, AStarNode* lowestcostnode, int las
 
 bool GlobalPlanner::pathSmoothing()
 {
+    /*
+     *Function to smooth the path by checking if we connect two poits the path would go through an obstacle
+     */
     ROS_INFO("Start Path Smooting");
     bool obstacle=false;
     double slope_x;
@@ -467,6 +478,10 @@ bool GlobalPlanner::pathSmoothing()
 
 void GlobalPlanner::pathVisualisation()
 {
+    /*
+     *Only to vizualize the path. Not needed for the final function
+     */
+
 
     points_path_.header.frame_id = "/map";
     points_path_.header.stamp = ros::Time();
@@ -504,6 +519,12 @@ void GlobalPlanner::pathVisualisation()
 //  1:  M[0][1]
 //  2:  M[1][0]
 //  ...
+
+/*
+ * Functions ar needed to convert a point in a occupnacy gird message of the map (line vector) to a
+ * position in the 2D map
+ *
+ */
 
 int GlobalPlanner::mapToLine(int col, int row)
 {
